@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
@@ -25,16 +25,7 @@ jobs:
 
       - name: Archive unsigned app
         run: |
-          xcodebuild \
-            -project PersonBox.xcodeproj \
-            -scheme PersonBox \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath build/PersonBox.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+          xcodebuild             -project PersonBox.xcodeproj             -scheme PersonBox             -configuration Release             -sdk iphoneos             -destination 'generic/platform=iOS'             -archivePath build/PersonBox.xcarchive             archive             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO
 
       - name: Package unsigned IPA
         run: |
@@ -47,4 +38,3 @@ jobs:
         with:
           name: PersonBox-unsigned-ipa
           path: build/PersonBox-unsigned.ipa
-
