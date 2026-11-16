@@ -10,6 +10,8 @@ final class ViewController: UIViewController {
     private var lastInferenceAt: Date?
     private var activeSince = Date()
     private var restartInProgress = false
+    private var pendingPersonBoxes: [CGRect] = []
+    private var boxUpdateScheduled = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,16 +35,22 @@ final class ViewController: UIViewController {
         yoloView.infoButton.isHidden = true
         yoloView.onDetection = { result in
             self.lastInferenceAt = Date()
-            let personBoxes = result.boxes
+            let normalizedPersonBoxes = result.boxes
                 .filter { $0.cls.lowercased() == "person" }
-                .map { prediction in
+                .map { ($0.xywhn, result.orig_shape) }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                let viewSize = self.yoloView.bounds.size
+                let personBoxes = normalizedPersonBoxes.map { normalizedRect, imageSize in
                     Self.displayRect(
-                        prediction.xywhn,
-                        imageSize: result.orig_shape,
-                        viewSize: self.view.bounds.size
+                        normalizedRect,
+                        imageSize: imageSize,
+                        viewSize: viewSize
                     )
                 }
-            self.boxOverlayView.boxes = personBoxes
+                self.scheduleBoxUpdate(personBoxes)
+            }
         }
 
         view.addSubview(yoloView)
@@ -113,6 +121,18 @@ final class ViewController: UIViewController {
             guard let self else { return }
             self.yoloView.resume()
             self.restartInProgress = false
+        }
+    }
+
+    private func scheduleBoxUpdate(_ boxes: [CGRect]) {
+        pendingPersonBoxes = boxes
+        guard !boxUpdateScheduled else { return }
+
+        boxUpdateScheduled = true
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            self.boxOverlayView.boxes = self.pendingPersonBoxes
+            self.boxUpdateScheduled = false
         }
     }
 
