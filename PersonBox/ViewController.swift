@@ -121,8 +121,10 @@ final class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
 
         isProcessingFrame = true
         let request = VNDetectHumanRectanglesRequest()
-        request.upperBodyOnly = false
-        request.revision = VNDetectHumanRectanglesRequestRevision2
+        if #available(iOS 15.0, *) {
+            request.upperBodyOnly = false
+            request.revision = VNDetectHumanRectanglesRequestRevision2
+        }
         let handler = VNImageRequestHandler(
             cvPixelBuffer: pixelBuffer,
             orientation: .right,
