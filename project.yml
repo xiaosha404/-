@@ -1,0 +1,22 @@
+name: PersonBox
+options:
+  minimumXcodeGenVersion: 2.38.0
+  deploymentTarget:
+    iOS: "14.0"
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    IPHONEOS_DEPLOYMENT_TARGET: "14.0"
+targets:
+  PersonBox:
+    type: application
+    platform: iOS
+    deploymentTarget: "14.0"
+    sources:
+      - path: PersonBox
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.xiaosha404.personbox
+        INFOPLIST_FILE: PersonBox/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+
