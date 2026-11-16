@@ -6,6 +6,10 @@ final class ViewController: UIViewController {
     private var yoloView: YOLOView!
     private let boxOverlayView = BoxOverlayView()
     private var notificationTokens: [NSObjectProtocol] = []
+    private var watchdogTimer: Timer?
+    private var lastInferenceAt: Date?
+    private var activeSince = Date()
+    private var restartInProgress = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,6 +32,7 @@ final class ViewController: UIViewController {
         yoloView.shareButton.isHidden = true
         yoloView.infoButton.isHidden = true
         yoloView.onDetection = { result in
+            self.lastInferenceAt = Date()
             let personBoxes = result.boxes
                 .filter { $0.cls.lowercased() == "person" }
                 .map { prediction in
@@ -47,6 +52,7 @@ final class ViewController: UIViewController {
         view.addSubview(boxOverlayView)
 
         observeCameraLifecycle()
+        startCameraWatchdog()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -56,16 +62,58 @@ final class ViewController: UIViewController {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        watchdogTimer?.invalidate()
+        watchdogTimer = nil
         yoloView?.stop()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        activeSince = Date()
+        lastInferenceAt = nil
+        startCameraWatchdog()
         restartCamera()
     }
 
     deinit {
+        watchdogTimer?.invalidate()
         notificationTokens.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    private func startCameraWatchdog() {
+        watchdogTimer?.invalidate()
+        watchdogTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) {
+            [weak self] _ in
+            self?.checkCameraHealth()
+        }
+    }
+
+    private func checkCameraHealth() {
+        guard view.window != nil,
+              UIApplication.shared.applicationState == .active,
+              !restartInProgress else {
+            return
+        }
+
+        let now = Date()
+        let hasStartedInference = lastInferenceAt != nil
+        let inferenceTimedOut = lastInferenceAt.map {
+            now.timeIntervalSince($0) > 4
+        } ?? now.timeIntervalSince(activeSince) > 8
+
+        guard hasStartedInference ? inferenceTimedOut : now.timeIntervalSince(activeSince) > 8 else {
+            return
+        }
+
+        restartInProgress = true
+        lastInferenceAt = nil
+        yoloView.stop()
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self else { return }
+            self.yoloView.resume()
+            self.restartInProgress = false
+        }
     }
 
     private func observeCameraLifecycle() {
