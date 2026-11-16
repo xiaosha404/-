@@ -121,6 +121,8 @@ final class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
 
         isProcessingFrame = true
         let request = VNDetectHumanRectanglesRequest()
+        request.upperBodyOnly = false
+        request.revision = VNDetectHumanRectanglesRequestRevision2
         let handler = VNImageRequestHandler(
             cvPixelBuffer: pixelBuffer,
             orientation: .right,
@@ -129,15 +131,17 @@ final class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBuff
 
         do {
             try handler.perform([request])
-            let boxes = (request.results ?? []).map { observation in
-                let box = observation.boundingBox
-                return CGRect(
-                    x: box.minX,
-                    y: 1 - box.maxY,
-                    width: box.width,
-                    height: box.height
-                )
-            }
+            let boxes = (request.results ?? [])
+                .filter { $0.confidence >= 0.35 }
+                .map { observation in
+                    let box = observation.boundingBox
+                    return CGRect(
+                        x: box.minX,
+                        y: 1 - box.maxY,
+                        width: box.width,
+                        height: box.height
+                    )
+                }
 
             DispatchQueue.main.async { [weak self] in
                 guard let self else { return }
