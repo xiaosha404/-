@@ -18,8 +18,9 @@ targets:
     deploymentTarget: "14.0"
     sources:
       - path: PersonBox
-    resources:
       - path: Models/yolo26n.mlpackage
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: yolo-ios-app
         product: UltralyticsYOLO
