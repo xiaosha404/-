@@ -1,23 +1,41 @@
 import UIKit
 
+@MainActor
 final class BoxOverlayView: UIView {
+    private let boxLayer = CAShapeLayer()
+
     var boxes: [CGRect] = [] {
         didSet {
-            setNeedsDisplay()
+            updatePath()
         }
     }
 
-    override func draw(_ rect: CGRect) {
-        guard let context = UIGraphicsGetCurrentContext() else {
-            return
-        }
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .clear
+        isOpaque = false
 
-        context.setStrokeColor(UIColor.systemGreen.cgColor)
-        context.setLineWidth(3)
+        boxLayer.fillColor = UIColor.clear.cgColor
+        boxLayer.strokeColor = UIColor.systemGreen.cgColor
+        boxLayer.lineWidth = 3
+        boxLayer.contentsScale = UIScreen.main.scale
+        layer.addSublayer(boxLayer)
+    }
 
-        for box in boxes {
-            context.stroke(box)
-        }
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        boxLayer.frame = bounds
+        updatePath()
+    }
+
+    private func updatePath() {
+        let path = CGMutablePath()
+        boxes.forEach { path.addRect($0) }
+        boxLayer.path = path
     }
 }
 
