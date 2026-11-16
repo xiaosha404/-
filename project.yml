@@ -19,7 +19,7 @@ targets:
     sources:
       - path: PersonBox
     resources:
-      - path: Models
+      - path: Models/yolo26n.mlpackage
     dependencies:
       - package: yolo-ios-app
         product: UltralyticsYOLO
