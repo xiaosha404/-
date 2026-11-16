@@ -5,6 +5,7 @@ import UltralyticsYOLO
 final class ViewController: UIViewController {
     private var yoloView: YOLOView!
     private let boxOverlayView = BoxOverlayView()
+    private var notificationTokens: [NSObjectProtocol] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -44,6 +45,8 @@ final class ViewController: UIViewController {
         boxOverlayView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         boxOverlayView.isUserInteractionEnabled = false
         view.addSubview(boxOverlayView)
+
+        observeCameraLifecycle()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -54,6 +57,80 @@ final class ViewController: UIViewController {
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         yoloView?.stop()
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        restartCamera()
+    }
+
+    deinit {
+        notificationTokens.forEach(NotificationCenter.default.removeObserver)
+    }
+
+    private func observeCameraLifecycle() {
+        let center = NotificationCenter.default
+
+        notificationTokens.append(
+            center.addObserver(
+                forName: UIApplication.didBecomeActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.restartCamera()
+            }
+        )
+
+        notificationTokens.append(
+            center.addObserver(
+                forName: UIApplication.willResignActiveNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.yoloView?.stop()
+            }
+        )
+
+        notificationTokens.append(
+            center.addObserver(
+                forName: .AVCaptureSessionWasInterrupted,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.yoloView?.stop()
+            }
+        )
+
+        notificationTokens.append(
+            center.addObserver(
+                forName: .AVCaptureSessionInterruptionEnded,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.restartCamera()
+            }
+        )
+
+        notificationTokens.append(
+            center.addObserver(
+                forName: .AVCaptureSessionRuntimeError,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.restartCamera()
+            }
+        )
+    }
+
+    private func restartCamera() {
+        guard isViewLoaded, view.window != nil else {
+            return
+        }
+
+        yoloView?.stop()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.yoloView?.resume()
+        }
     }
 
     private static func displayRect(
