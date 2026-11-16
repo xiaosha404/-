@@ -99,7 +99,7 @@ final class ViewController: UIViewController {
         let hasStartedInference = lastInferenceAt != nil
         let inferenceTimedOut = lastInferenceAt.map {
             now.timeIntervalSince($0) > 4
-        } ?? now.timeIntervalSince(activeSince) > 8
+        } ?? (now.timeIntervalSince(activeSince) > 8)
 
         guard hasStartedInference ? inferenceTimedOut : now.timeIntervalSince(activeSince) > 8 else {
             return
